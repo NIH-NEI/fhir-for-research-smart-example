@@ -1,0 +1,49 @@
+version: '3'
+
+services:
+  # HAPI FHIR server pre-loaded with Synthea + eye data
+  hapi:
+    build: ./hapi
+    ports:
+      - "8080:8080"
+    volumes:
+      - db:/usr/local/tomcat/target/database
+
+  # Example user interface for CDS application launched with SMART on FHIR
+  ui:
+    build: ./example_ui
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+
+  # Example CDS server
+  cds:
+    build: ./example_cds_server
+    ports:
+      - "8081:8080"
+    environment:
+      - PACS=http://pacs:8082
+      - FHIR_SERVER=http://hapi:8080/hapi-fhir-jpaserver/fhir
+      - LISTEN_PORT=8080
+
+  # Example PACS server
+  pacs:
+    build: ./example_pacs
+    ports:
+      - "8082:8080"
+    environment:
+      - LISTEN_PORT=8080
+
+  # SMART Launch simulator
+  smart_launch:
+    build: https://github.com/smart-on-fhir/smart-launcher-v2.git
+    ports:
+      - "8010:8010"
+    environment:
+      - PORT=8010
+      - FHIR_SERVER_R4=http://hapi:8080/hapi-fhir-jpaserver/fhir
+      - NODE_ENV=production
+
+volumes:
+  db:

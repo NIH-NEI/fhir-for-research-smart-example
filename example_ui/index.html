@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Example SMART App</title>
+
+  <!-- Use the SMART on FHIR JavaScript library -->
+  <script src="https://cdn.jsdelivr.net/npm/fhirclient/build/fhir-client.js"></script>
+
+  <script src="fhirpath.js/fhirpath-3.5.0.min.js"></script>
+  <script src="fhirpath.js/fhirpath-3.5.0.r4.min.js"></script>
+
+  <!-- Use Bootstrap for styling -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" />
+  <style>
+    /* Additional styling for text boxes that will show JSON data */
+    #patient,
+    #meds {
+      font-family: Monaco, monospace;
+      white-space: pre;
+      font-size: 13px;
+      height: 38vh;
+      overflow: scroll;
+      border: 1px solid #ccc;
+    }
+
+    div.scroll-container {
+      background-color: #eee;
+      overflow-x: scroll;
+      overflow-y: hidden;
+      white-space: nowrap;
+      padding: 10px;
+    }
+
+    div.inner {
+      height: 100%;
+      white-space:nowrap;
+    }
+
+    div.floatLeft {
+      display: inline-block;
+      padding: 10px;
+      width: 420px;
+    }
+
+    .imageText {
+      text-wrap: wrap;
+    }
+
+  </style>
+</head>
+
+<body>
+  <nav class="navbar bg-primary" style="margin-bottom: 2vh">
+    <div class="container-fluid">
+      <span class="navbar-brand mb-0 h1 text-white">Example SMART on FHIR Application</span>
+    </div>
+  </nav>
+  <div class="container">
+    <div>
+      <h4>Patient: <span id="patient-name">...</span></h4>
+      <div>
+        <p>
+          <b>Patient ID: </b><span id="patient-id">...</span>
+        </p>
+        <p>
+          <b>FHIR ID: </b><span id="fhir-id">...</span>
+        </p>
+        <p>
+          <b>Birthdate: </b><span id="patient-birthdate">...</span>
+        </p>
+      </div>
+    <div>
+      <button id="get-cds-button">Get CDS</button>
+      <div>
+        <h3>CDS</h3>
+        <h4>Recommendation</h4>
+        <div id="cds-recommendation">
+          <!-- will be filled using the javascript code-->
+        </div>
+        <h4>Conditions</h2>
+        <ul id="conditions-list">
+          <!-- will be filled using the javascript code-->
+        </ul>
+        <p><em>A maximum of 20 conditions are displayed.</em></p>
+        <h4>Hemoglobin A1c Observations</h2>
+        <ul id="observations-list">
+          <!-- will be filled using the javascript code-->
+        </ul>
+        <p><em>A maximum of 20 observations are displayed.</em></p>
+        <h4>Medications</h2>
+        <ul id="medications-list">
+          <!-- will be filled using the javascript code-->
+        </ul>
+        <p><em>A maximum of 20 medications are displayed.</em></p>
+        <h4>Imagery</h4>
+        <div  class="scroll-container">
+          <div id="eye-imagery-container" class="inner">
+            <!-- will be filled using the javascript code-->
+          </div>
+        </div>
+        <p><em>A maximum of 20 images are displayed.</em></p>
+      </div>
+    </div>
+    <p>
+      If no data loads, you need to launch this web app through a
+      <a href="https://launch.smarthealthit.org/">SMART on FHIR launcher</a>.
+      See the
+      <a href="https://mitre.github.io/fhir-for-research/modules/smart-on-fhir-tech#example-smart-on-fhir-app">technical
+        overview</a>
+      for a how-to.
+    </p>
+    <script type="text/javascript">
+      const CDS_BASE_URL = "http://127.0.0.1:8081/";
+
+      (async () => {
+
+        try {
+          var client = await FHIR.oauth2.ready();
+          showPatientData(client);
+
+          var patient = await client.patient.read();
+
+          // on button click, get and show clinical decision support
+          document.getElementById("get-cds-button").onclick = async function () {
+            this.disabled = true;
+            this.innerText = 'Loading...';
+            try {
+              var path = "Patient.identifier.where(type.coding.system = 'http://terminology.hl7.org/CodeSystem/v2-0203' and type.coding.code = 'MR').value"
+              var patientId = fhirpath.evaluate(patient, path, null, fhirpath_r4_model);
+              var cds = await getCDS(patientId);
+              debugger;
+
+              showCDS(cds.cds);
+              showConditions(cds.conditions);
+              showObservations(cds.observations);
+              showMedications(cds.medications);
+              showEyeImagery(cds.imagery);
+
+              this.innerText = "Loaded! Refresh page to run again.";
+            } catch (error) {
+              console.error(error.message);
+            }
+          }
+        } catch (error) {
+          console.error(error.message);
+        }
+
+      })();
+
+      /* Display the following patient data:
+      - name
+      - birthdate
+      - fhir id
+      - ehr id
+      */
+      async function showPatientData(client) {
+        var patient = await client.patient.read();
+
+        document.getElementById("patient-name").innerText = `${patient.name[0].given.join(" ")} ${patient.name[0].family}`;
+        document.getElementById("patient-birthdate").innerText = `${patient.birthDate}`;
+        document.getElementById("fhir-id").innerText = `${patient.id}`;
+
+        var path = "Patient.identifier.where(type.coding.system = 'http://terminology.hl7.org/CodeSystem/v2-0203' and type.coding.code = 'MR').value"
+        var patientId = fhirpath.evaluate(patient, path, null, fhirpath_r4_model);
+        document.getElementById("patient-id").innerText = patientId;
+      };
+
+      /* Query the CDS Server for a CDS recommendation for the patient. */
+      async function getCDS(patient_id) {
+        url = new URL(patient_id, CDS_BASE_URL)
+        cds_resp = await fetchAsync(url);
+        return cds_resp;
+      };
+
+      /* Display the CDS recommendation */
+      function showCDS(cds) {
+        var cdsContainer = document.getElementById("cds-recommendation");
+        var text = document.createTextNode(cds.text);
+        clearNode(cdsContainer);
+        cdsContainer.appendChild(text);
+      };
+
+      /* Display the patient's most recent conditions */
+      function showConditions(conditions) {
+        var conditionsList = document.getElementById("conditions-list");
+        clearNode(conditionsList);
+
+        if (conditions) {
+          conditions.forEach((condition) => {
+            var li = getDatedLinkedListItem(condition.date,
+                                       condition.coding_display,
+                                       'https://lookup.snomedtools.org/' + condition.coding_code)
+            conditionsList.appendChild(li);
+          });
+        } else {
+          conditionsList.appendChild(getListItem("No conditions found for the selected patient"));
+        };
+      };
+
+      /* Display the patient's most recent Hemoglobin A1c Observations */
+      function showObservations(observations) {
+        var observationsList = document.getElementById("observations-list");
+        clearNode(observationsList);
+
+        if (observations) {
+          observations.forEach((observation) => {
+
+            var value = null;
+            if ('value' in observation) {
+              value = `${observation.value}%`;
+            }
+
+            var li = getDatedLinkedListItem(observation.date,
+                                       observation.coding_display,
+                                       'https://loinc.org/' + observation.coding_code,
+                                       value)
+
+            observationsList.appendChild(li);
+          });
+        } else {
+          observationsList.appendChild(getListItem("No observations found for the selected patient"));
+        };
+      };
+
+      /* Display the patient's most recent medications */
+      function showMedications(medications) {
+        var medicationsList = document.getElementById("medications-list");
+        clearNode(medicationsList);
+
+        if (medications) {
+          medications.forEach((medication) => {
+            var li = getDatedLinkedListItem(medication.date,
+                                       medication.coding_display,
+                                       'https://mor.nlm.nih.gov/RxNav/search?searchBy=RXCUI&searchTerm=' + medication.coding_code)
+            medicationsList.appendChild(li);
+          });
+
+        } else {
+          medicationsList.appendChild(getListItem("No medications found for the selected patient"))
+        };
+      };
+
+      /* Display the patient's most recent eye imagery along with the associated encounter information */
+      function showEyeImagery(images) {
+        var container = document.getElementById("eye-imagery-container");
+        clearNode(container);
+
+        images.forEach((image) => {
+          var imageInfoContainer = document.createElement("div");
+          var imageTextContainer = document.createElement("div");
+          var imageElement = document.createElement("img");
+
+          imageElement.src = "data:" + image.type_picture + ";base64, " + image.data_picture;
+          imageElement.alt = image.coding_display_image;
+          imageElement.width="400";
+          imageElement.height="400";
+
+          imageTextContainer.className = "imageText";
+
+          var date = new Date(image.date_encounter).toLocaleDateString("en-US");
+          imageTextContainer.innerHTML = `
+          <p>
+            <b>${image.coding_display_image}</b> occurred during
+            <b>${image.coding_display_encounter}</b> on
+            <b>${date}</b>.
+          </p>`
+
+          imageInfoContainer.className = "floatLeft";
+          imageInfoContainer.appendChild(imageElement);
+          imageInfoContainer.appendChild(imageTextContainer);
+
+          container.appendChild(imageInfoContainer);
+        });
+      };
+
+      /* Create a list item formatted in the following way:
+        "MM/DD/YYYY <linkText>: <otherText>"
+        If any of the entries are missing, they are not included in the formatted
+        text.
+      */
+      function getDatedLinkedListItem(dateText, linkText, href, otherText) {
+        var li = document.createElement("li");
+
+        if(dateText) {
+          var dateFormattedText = new Date(dateText).toLocaleDateString("en-US");
+          li.appendChild(document.createTextNode(`${dateFormattedText}: `));
+        }
+
+        if(linkText && href) {
+          var a = document.createElement("a");
+          var linkTextNode = document.createTextNode(linkText);
+
+          a.href = href;
+          a.title = linkText;
+          a.appendChild(linkTextNode);
+          li.appendChild(a);
+        }
+
+        if(otherText) {
+          li.appendChild(document.createTextNode(`: ${otherText}`));
+        }
+
+        return li;
+      }
+
+      /* Create a simple text list item */
+      function getListItem(text) {
+        var li = document.createElement("li");
+        var linkText = document.createTextNode(text);
+        li.appendChild(linkText);
+        return li;
+      }
+
+      function clearNode(node) {
+        while (node.firstChild) {
+          node.removeChild(node.lastChild);
+        };
+      };
+
+      async function fetchAsync (url) {
+        let response = await fetch(url);
+        let data = await response.json();
+        return data;
+      }
+    </script>
+  </div>
+</body>
+
+</html>
