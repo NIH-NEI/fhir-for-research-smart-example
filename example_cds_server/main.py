@@ -5,6 +5,7 @@ import traceback
 import pandas as pd
 import json
 import os
+import pdb
 
 IMAGE_SERVER = os.environ["PACS"]
 
@@ -129,7 +130,6 @@ def get_pictures(patient_id, image_studies_df):
     Retrieves an image and its metadata from the image server.
     """
     picture_ids = set(image_studies_df['picture_id'].to_list())
-
     responses = []
     for picture_id in picture_ids:
         image_url = f"{IMAGE_SERVER}/{patient_id}/{picture_id}"
@@ -137,7 +137,7 @@ def get_pictures(patient_id, image_studies_df):
         if response.status_code == 200:
             # responds with a single level json object
             response_dict = response.json()
-            #response_dict["id"] = picture_id
+            # response_dict["id"] = picture_id
             responses.append(response_dict)
 
     images_df = pd.DataFrame.from_dict(responses)
@@ -169,7 +169,6 @@ def merge_imagestudies_encounters_pictures(image_studies, encounters, pictures):
                     'image': 'data_picture',
                     'subject_id': 'id_subject'}
                     )
-
 
     return image_encounters_pictures
 
