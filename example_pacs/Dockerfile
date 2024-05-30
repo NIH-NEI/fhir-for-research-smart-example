@@ -3,6 +3,6 @@ COPY ../requirements.txt /app/requirements.txt
 
 RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 
-COPY *.py /app
+COPY main.py /app
 
-ADD https://github.com/NIH-NEI/fhir-for-research-workshop.git /app/workshop
+COPY images /app/images

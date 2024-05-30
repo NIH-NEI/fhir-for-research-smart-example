@@ -4,7 +4,7 @@ import mimetypes
 import os
 import base64
 
-IMAGE_DIR = "workshop/synthetic_data/images"
+IMAGE_DIR = "images"
 
 app = Flask(__name__)
 

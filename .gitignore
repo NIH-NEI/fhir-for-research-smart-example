@@ -1,6 +1,7 @@
 .nova
 .vscode
 !.vscode/settings.json
+synthetic_data_loader
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
