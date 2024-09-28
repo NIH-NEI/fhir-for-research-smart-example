@@ -21,7 +21,7 @@ To kill the server, run `docker ps --filter "ancestor=example-cds-hooks-service-
 In order for the example CDS Hooks to work, patients that meet the CDS Hook criteria are necessary. These are available via a pre-populated database for the HAPI FHIR server. To run this:
 
 1. `mkdir hapi`
-2. Unzip the `synthetic_data/cds-hapi.zip` file in the `hapi/` folder to create `hapi/h2.mv.db
+2. Unzip the `synthetic_data/cds-retinoblastoma/database-cds-retinoblastoma.zip` file in the `hapi/` folder to create `hapi/h2.mv.db`
 3. Run the following Docker command to start the HAPI server using this database: `docker run -it -p 8080:8080 -v ${PWD}/hapi:/usr/local/tomcat/target/database smartonfhir/hapi-5:r4-empty`
 
 ## Testing the CDS Hooks examples
@@ -35,5 +35,4 @@ You can modify the `patientId=XX` parameter in the URL to change the ID of the p
 The following patient ids can be used to test, assuming you are running the provided HAPI database:
 
 - `patientId=86`: retinoblastoma condition
-- `patientId=314`: retinoblastoma condition
 - `patientId=642`: no retinoblastoma condition
